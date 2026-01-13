@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Editor & OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Logs
+*.log
+
+# Build output
+main
+*.exe
+
+# Node (kalau ada frontend di repo ini)
+node_modules
+
+# Docker files
+docker-compose.yml
+Dockerfile

@@ -1,0 +1,192 @@
+version: '3.8'
+
+services:
+  # =======================
+  # Customer Service - Node.js + MongoDB
+  # =======================
+  customer-service:
+    build: ./customer-service
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/customer_db
+      - PORT=3001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - microservice-network
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - microservice-network
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    ports:
+      - "8082:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    depends_on:
+      - mongodb
+    networks:
+      - microservice-network
+
+  # =======================
+  # Salon Service - PHP + MySQL
+  # =======================
+  salon-service:
+    build: ./salon-service
+    ports:
+      - "8080:80"
+    environment:
+      - DB_HOST=mysql_salon
+      - DB_NAME=salon_db
+      - DB_USER=root
+      - DB_PASSWORD=password
+    depends_on:
+      - mysql_salon
+    networks:
+      - microservice-network
+
+  mysql_salon:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=salon_db
+    volumes:
+      - mysql_salon_data:/var/lib/mysql
+    networks:
+      - microservice-network
+
+  # phpMyAdmin untuk MySQL Salon
+  phpmyadmin-salon:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8083:80"
+    environment:
+      PMA_HOST: mysql_salon
+      PMA_USER: root
+      PMA_PASSWORD: password
+    depends_on:
+      - mysql_salon
+    networks:
+      - microservice-network
+
+  # =======================
+  # Booking Service - Golang + PostgreSQL
+  # =======================
+  booking-service:
+    build: ./booking-service
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=booking_db
+      - PORT=8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - microservice-network
+    restart: on-failure
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=booking_db
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - microservice-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # pgAdmin untuk PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8084:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    depends_on:
+      - postgres
+    networks:
+      - microservice-network
+
+  # =======================
+  # Review Service - Python + MySQL
+  # =======================
+  review-service:
+    build: ./review-service
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=mysql_review
+      - DB_NAME=review_db
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - PORT=5000
+    depends_on:
+      - mysql_review
+    networks:
+      - microservice-network
+
+  mysql_review:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=review_db
+    volumes:
+      - mysql_review_data:/var/lib/mysql
+    networks:
+      - microservice-network
+
+  # phpMyAdmin untuk MySQL Review
+  phpmyadmin-review:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8085:80"
+    environment:
+      PMA_HOST: mysql_review
+      PMA_USER: root
+      PMA_PASSWORD: password
+    depends_on:
+      - mysql_review
+    networks:
+      - microservice-network
+
+volumes:
+  mongodb_data:
+  mysql_salon_data:
+  postgres_data:
+  mysql_review_data:
+
+networks:
+  microservice-network:
+    driver: bridge
