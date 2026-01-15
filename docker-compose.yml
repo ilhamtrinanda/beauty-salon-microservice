@@ -53,7 +53,8 @@ services:
       - DB_USER=root
       - DB_PASSWORD=password
     depends_on:
-      - mysql_salon
+      mysql_salon:
+        condition: service_healthy
     networks:
       - microservice-network
 
@@ -66,6 +67,13 @@ services:
       - MYSQL_DATABASE=salon_db
     volumes:
       - mysql_salon_data:/var/lib/mysql
+      - ./salon-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     networks:
       - microservice-network
 
